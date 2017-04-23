@@ -13,7 +13,7 @@ public class Path {
 	Path(List<String> path) {
 		this.path = new ArrayList<>();
 		for (String name : path) {
-			path.add(name);
+			this.path.add(name);
 		}
 	}
 	
