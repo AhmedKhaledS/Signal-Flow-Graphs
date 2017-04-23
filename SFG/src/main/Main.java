@@ -52,7 +52,7 @@ public class Main {
 			int adjacentIndex = adjacentEdge.getTargetNode().getIndex();
 			dfs(adjacentIndex);	
 		}
-		path.remove(path.size() - 1);
+		//path.remove(path.size() - 1);
 		loops.remove(loops.size() - 1);
 	}
 	static void printPath() {
