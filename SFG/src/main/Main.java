@@ -16,6 +16,7 @@ public class Main {
 	private static List<String> loop;
 	private static boolean[] visited;
 	private static SingleGraph graph;
+	
 	public static void main(String[] args) {
 		graph = new SingleGraph("Graph");
 		for (int i = 0; i < 4; i++) {
@@ -91,5 +92,10 @@ public class Main {
 			System.out.print(node + " ");
 		}
 		System.out.println();
+	}
+	static double computeDelta() {
+		double delta = 1.0;
+		for ()
+		return 1.0;
 	}
 }
