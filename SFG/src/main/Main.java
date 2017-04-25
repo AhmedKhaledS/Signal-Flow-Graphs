@@ -13,6 +13,11 @@ public class Main {
 	private static List<Path> forwardPaths;
 	private static List<Path> loops;
 	private static List<String> path;
+	
+	
+	private static List<main.Edge> edgePath;
+	
+	
 	private static List<String> loop;
 	private static List<main.List<Double, Integer>> adjList;
 	private static boolean[] visited;
@@ -20,6 +25,7 @@ public class Main {
 	
 	public static void main(String[] args) {
 		adjList = new ArrayList<>(1000);
+		edgePath = new ArrayList<>();
 		for (int i = 0; i < 1000; i++) {
 			adjList.add(new main.List<>());
 		}
@@ -33,8 +39,10 @@ public class Main {
 				adjList.get(i).add(new Pair<>(new Double(5.0), new Integer(i + 1)));
 			}
 			graph.addEdge("Node30", 3, 0, true);
+			adjList.get(3).add(new Pair<>(new Double(5.0), new Integer(0)));
 			//graph.addEdge("Node10", 1, 0, true);
 			graph.addEdge("Node31", 3, 1, true);
+			adjList.get(3).add(new Pair<>(new Double(5.0), new Integer(1)));
 		} catch (EdgeRejectedException e) {
 			e.printStackTrace();
 		}
@@ -44,7 +52,7 @@ public class Main {
 		loop = new ArrayList<>();
 		visited = new boolean[10];
 		destination = 3;
-		dfs(0);
+		dfs(0, -1, -1);
 		graph.display();
 		System.out.println();
 		System.out.println("Forward paths:");
@@ -63,7 +71,12 @@ public class Main {
 		}
 	}
 
-	static void dfs(int node) {
+	static void dfs(int node, int parent, double cost) {
+		if (parent != -1) {
+			String t1 = graph.getNode(parent).toString();
+			String t2 = graph.getNode(node).toString();
+			edgePath.add(new main.Edge(graph.getNode(parent).toString(), graph.getNode(node).toString(), cost));
+		}
 		if (node == destination) {
 			forwardPaths.add(new Path(path));
 			printPath();
@@ -78,9 +91,12 @@ public class Main {
 		visited[node] = true;
 		path.add(graph.getNode(node).toString());
 		loop.add(graph.getNode(node).toString());
+		int adjNodeIndex = 0;
 		for (Edge adjacentEdge : graph.getNode(node).getEachLeavingEdge()) {
 			int adjacentIndex = adjacentEdge.getTargetNode().getIndex();
-			dfs(adjacentIndex);	
+			dfs(adjacentIndex, adjacentEdge.getSourceNode().getIndex(),
+					(double)adjList.get(node).get(adjNodeIndex).getL());	
+			adjNodeIndex++;
 		}
 		path.remove(path.size() - 1);
 		loop.remove(loop.size() - 1);
