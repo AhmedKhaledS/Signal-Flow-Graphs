@@ -14,10 +14,15 @@ public class Main {
 	private static List<Path> loops;
 	private static List<String> path;
 	private static List<String> loop;
+	private static List<main.List<Double, Integer>> adjList;
 	private static boolean[] visited;
 	private static SingleGraph graph;
 	
 	public static void main(String[] args) {
+		adjList = new ArrayList<>(1000);
+		for (int i = 0; i < 1000; i++) {
+			adjList.add(new main.List<>());
+		}
 		graph = new SingleGraph("Graph");
 		for (int i = 0; i < 4; i++) {
 			graph.addNode("Node" + i);
@@ -25,6 +30,7 @@ public class Main {
 		try {
 			for (int i = 0; i < 3; i++) {
 				graph.addEdge("Node" + i + (i + 1), i, i + 1, true);
+				adjList.get(i).add(new Pair<>(new Double(5.0), new Integer(i + 1)));
 			}
 			graph.addEdge("Node30", 3, 0, true);
 			//graph.addEdge("Node10", 1, 0, true);
@@ -92,10 +98,10 @@ public class Main {
 			System.out.print(node + " ");
 		}
 		System.out.println();
-	}
+	} 
 	static double computeDelta() {
 		double delta = 1.0;
-		for ()
+		//for ()
 		return 1.0;
 	}
 }
