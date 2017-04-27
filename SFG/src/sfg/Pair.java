@@ -1,4 +1,4 @@
-package main;
+package sfg;
 
 public class Pair<L, R> {
 	private L l;

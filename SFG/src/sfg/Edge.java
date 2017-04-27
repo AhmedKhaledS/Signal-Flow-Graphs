@@ -1,4 +1,4 @@
-package main;
+package sfg;
 
 public class Edge {
 	private String source;

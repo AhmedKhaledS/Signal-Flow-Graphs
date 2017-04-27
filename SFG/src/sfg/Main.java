@@ -1,4 +1,4 @@
-package main;
+package sfg;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,11 +25,11 @@ public class Main {
 	private static boolean marker[];
 	
 	
-	private static List<main.Edge> edgePath;
+	private static List<sfg.Edge> edgePath;
 	
 	
 	private static List<String> loop;
-	private static List<main.List<Double, Integer>> adjList;
+	private static List<sfg.List<Double, Integer>> adjList;
 	private static boolean[] visited;
 	private static SingleGraph graph;
 	
@@ -39,8 +39,11 @@ public class Main {
 	
 	
 	public static void main(String[] args) {
+		graph = new SingleGraph("Graph");
 		input = new Scanner(System.in);
-		declare();
+		//declare();
+		GraphAttributes.initialize();
+		GraphTraversal graphTr = new GraphTraversal(graph);
 		try {
 			System.out.println("Enter number of nodes: ");
 			noOfNodes = input.nextInt();
@@ -58,29 +61,30 @@ public class Main {
 				dest = input.nextInt();
 				tmp = input.nextDouble();
 				graph.addEdge("edge" + i, src, dest, true);
-				adjList.get(src).add(new Pair<>(new Double(tmp), new Integer(dest)));
+				GraphAttributes.addChild(src, dest, tmp);
+//				adjList.get(src).add(new Pair<>(new Double(tmp), new Integer(dest)));
 			}
 		} catch (EdgeRejectedException e) {
 			e.printStackTrace();
 		}
 		System.out.println("Enter the source node-name:");
 		String src = input.next();
-		int source = nodes.get(src);
+		int source = GraphAttributes.getIntegerValue(src);
 		System.out.println("Enter the destination node-name:");
 		String dest = input.next();
-		int destination = nodes.get(dest);
+		int destination = GraphAttributes.getIntegerValue(dest);
 		// Extracting all loops.
 		for (int i = 0; i < noOfNodes; i++) {
-			loops_dfs(i, -1, 1, i, 1);
-			clear();
+			graphTr.loops_dfs(i, -1, 1, i, 1);
+			graphTr.clear();
 		}
-		removeDuplicates();
+		graphTr.removeDuplicates();
 		// Extracting all forward paths.
-		paths_dfs(source, -1, 1, destination);
+		graphTr.paths_dfs(source, -1, 1, destination);
 		graph.display();
 		System.out.println();
 		System.out.println("Forward paths:");
-		for (Pair<Path, Double> forPath : forwardPaths) {
+		for (Pair<Path, Double> forPath : graphTr.getForwardPaths()) {
 			for (String name : forPath.getL().getPath()) {
 				System.out.print(name + " ");
 			}
@@ -88,17 +92,18 @@ public class Main {
 		}
 		System.out.println("******************************************");
 		System.out.println("Loops:");
-		for (Pair<Path, Double> currLoop : loops) {
+		for (Pair<Path, Double> currLoop : graphTr.getLoops()) {
 			for (String name : currLoop.getL().getPath()) {
 				System.out.print(name + " ");
 			}
 			System.out.println("Gain: " + currLoop.getR());
 		}
+		SFGCalculator calculator = new SFGCalculator(graphTr);
 		System.out.println("******************************************");
-		computeDeltas();
+		calculator.computeDeltas();
 		System.out.println("Delta: " + delta);
 		System.out.println("******************************************");
-		computeTransferFunction();
+		transferFunction = calculator.computeTransferFunction();
 		System.out.println("Overall Transfer function: " + transferFunction);
 	}
 	
@@ -110,12 +115,12 @@ public class Main {
 	}
 	static void fillMaps(int sz) {
 		for (int i = 0; i < sz; i++) {
-			nodes.put("Node" + i, i);
-			nodeName.put(i, "Node" + i);
+//			nodes.put("Node" + i, i);
+//			nodeName.put(i, "Node" + i);
+			GraphAttributes.addNode("Node" + i, i);
 		}
 	}
 	static void declare() {
-		adjList = new ArrayList<>(1000);
 		edgePath = new ArrayList<>();
 		forwardPaths = new ArrayList<>(1000);
 		loops = new ArrayList<>(1000);
@@ -125,15 +130,16 @@ public class Main {
 		nodes = new HashMap<>();
 		nodeName = new HashMap<>();
 		marker = new boolean[100];
+		adjList = new ArrayList<>(1000);
 		for (int i = 0; i < 1000; i++) {
-			adjList.add(new main.List<>());
+			adjList.add(new sfg.List<>());
 		}
 		graph = new SingleGraph("Graph");
 	}
 	
 	static void loops_dfs(int node, int parent, double cost, int src, int sz) {
 		if (parent != -1) {
-			edgePath.add(new main.Edge(graph.getNode(parent).toString(),
+			edgePath.add(new sfg.Edge(graph.getNode(parent).toString(),
 					graph.getNode(node).toString(), cost));
 		}
 		loop.add(graph.getNode(node).toString());
@@ -199,7 +205,7 @@ public class Main {
 	
 	static void paths_dfs(int node, int parent, double cost, int dest) {
 		if (parent != -1) {
-			edgePath.add(new main.Edge(graph.getNode(parent).toString(), graph.getNode(node).toString(), cost));
+			edgePath.add(new sfg.Edge(graph.getNode(parent).toString(), graph.getNode(node).toString(), cost));
 		}
 		if (visited[node]) {
 			return;

@@ -1,4 +1,4 @@
-package main;
+package sfg;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,7 +1,8 @@
-package main;
+package sfg;
 
 import java.util.ArrayList;
-import main.Pair;
+
+import sfg.Pair;
 
 public class List<L, R> {
 	private ArrayList<Pair<L, R>> list;
