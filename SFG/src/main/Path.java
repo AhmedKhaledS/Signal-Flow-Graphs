@@ -20,4 +20,8 @@ public class Path {
 	public List<String> getPath() {
 		return this.path;
 	}
+	
+	public int size() {
+		return path.size();
+	}
 }
