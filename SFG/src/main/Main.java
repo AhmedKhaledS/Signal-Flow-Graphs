@@ -19,7 +19,7 @@ public class Main {
 	private static List<String> path;
 	private static Map<String, Integer> nodes;
 	private static Map<Integer, String> nodeName;
-	private static double delta;
+	private static double delta = 1.0;
 	
 	// To detect whether there is more combination of non-touching loops or not.
 	private static boolean changed;
@@ -71,7 +71,7 @@ public class Main {
 		int destination = nodes.get(dest);
 		// Extracting all loops.
 		for (int i = 0; i < noOfNodes; i++) {
-			loops_dfs(i, -1, 1, i);
+			loops_dfs(i, -1, 1, i, 1);
 			clear();
 		}
 		removeDuplicates();
@@ -93,7 +93,8 @@ public class Main {
 			}
 			System.out.println(currLoop.getR());
 		}
-		System.out.println(computeDelta());
+		computeDelta();
+		
 	}
 	
 	
@@ -125,7 +126,7 @@ public class Main {
 		graph = new SingleGraph("Graph");
 	}
 	
-	static void loops_dfs(int node, int parent, double cost, int src) {
+	static void loops_dfs(int node, int parent, double cost, int src, int sz) {
 		if (parent != -1) {
 			edgePath.add(new main.Edge(graph.getNode(parent).toString(),
 					graph.getNode(node).toString(), cost));
@@ -139,12 +140,13 @@ public class Main {
 			loop.remove(loop.size() - 1);
 			return;
 		}
+		//if (sz > noOfNodes) return;
 		visited[node] = true;
 		int adjNodeIndex = 0;
 		for (int i = 0; i < adjList.get(node).size(); i++) {
 			int child = (int) adjList.get(node).get(i).getR();
 			loops_dfs(child, node, cost*(double)adjList.get(node)
-					.get(adjNodeIndex).getL(), src);	
+					.get(adjNodeIndex).getL(), src, sz + 1);	
 			adjNodeIndex++;
 		}
 		visited[node] = false;
@@ -216,8 +218,8 @@ public class Main {
 		visited[node] = false;
 		path.remove(path.size() - 1);
 	} 
-	static double computeDelta() {
-		double delta = 1.0;
+	static void computeDelta() {
+		//double delta = 1.0;
 		int sign = -1;
 		for (Pair<Path, Double> indivLoops : loops) {
 			delta += sign*indivLoops.getR();
@@ -230,7 +232,7 @@ public class Main {
 			}
 			getNonTouchingLoopsCombGain(0, 0, sz);
 		}
-		return delta;
+		System.out.println(delta);
 	}
 	private static void getNonTouchingLoopsCombGain(int index, int taken, int sz) {
 		if (taken == sz) {
@@ -272,7 +274,7 @@ public class Main {
 						}
 					}
 					for (int k = 0; k < reference.size(); k++) {
-						for (int l = k + 1; l < compared.size(); l++) {
+						for (int l = 0; l < compared.size(); l++) {
 							if (reference.get(k).equals(compared.get(l))) {
 								return false;
 							}
