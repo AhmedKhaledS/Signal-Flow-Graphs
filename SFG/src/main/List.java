@@ -17,4 +17,7 @@ public class List<L, R> {
 		return list.get(index);
 	}
 	
+	public int size() {
+		return list.size();
+	}
 }

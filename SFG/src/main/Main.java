@@ -14,11 +14,16 @@ import org.omg.CORBA.DynAnyPackage.Invalid;
 
 public class Main {
 	private static int size = 0;
-	private static List<Path> forwardPaths;
-	private static List<Path> loops;
+	private static List<Pair<Path, Double>> forwardPaths;
+	private static List<Pair<Path, Double>> loops;
 	private static List<String> path;
 	private static Map<String, Integer> nodes;
 	private static Map<Integer, String> nodeName;
+	private static double delta;
+	
+	// To detect whether there is more combination of non-touching loops or not.
+	private static boolean changed;
+	private static boolean marker[];
 	
 	
 	private static List<main.Edge> edgePath;
@@ -29,7 +34,6 @@ public class Main {
 	private static boolean[] visited;
 	private static SingleGraph graph;
 	
-	private static Integer scaler = 0;
 	private static int noOfNodes;
 	private static int noOfEdges;
 	
@@ -56,15 +60,6 @@ public class Main {
 				graph.addEdge("edge" + i, nodes.get(src), nodes.get(dest), true);
 				adjList.get(nodes.get(src)).add(new Pair<>(new Double(tmp), new Integer(nodes.get(dest))));
 			}
-//			for (int i = 0; i < 3; i++) {
-//				graph.addEdge("Node" + i + (i + 1), i, i + 1, true);
-//				adjList.get(i).add(new Pair<>(new Double(5.0), new Integer(i + 1)));
-//			}
-//			graph.addEdge("Node30", 3, 0, true);
-//			adjList.get(3).add(new Pair<>(new Double(5.0), new Integer(0)));
-//			//graph.addEdge("Node10", 1, 0, true);
-//			graph.addEdge("Node31", 3, 1, true);
-//			adjList.get(3).add(new Pair<>(new Double(5.0), new Integer(1)));
 		} catch (EdgeRejectedException e) {
 			e.printStackTrace();
 		}
@@ -76,28 +71,29 @@ public class Main {
 		int destination = nodes.get(dest);
 		// Extracting all loops.
 		for (int i = 0; i < noOfNodes; i++) {
-			loops_dfs(i, -1, -1, i);
+			loops_dfs(i, -1, 1, i);
 			clear();
 		}
 		removeDuplicates();
 		// Extracting all forward paths.
-		paths_dfs(source, -1, -1, destination);
+		paths_dfs(source, -1, 1, destination);
 		graph.display();
 		System.out.println();
 		System.out.println("Forward paths:");
-		for (Path forPath : forwardPaths) {
-			for (String name : forPath.getPath()) {
+		for (Pair<Path, Double> forPath : forwardPaths) {
+			for (String name : forPath.getL().getPath()) {
 				System.out.print(name + " ");
 			}
 			System.out.println();
 		}
 		System.out.println("Loops:");
-		for (Path currLoop : loops) {
-			for (String name : currLoop.getPath()) {
+		for (Pair<Path, Double> currLoop : loops) {
+			for (String name : currLoop.getL().getPath()) {
 				System.out.print(name + " ");
 			}
-			System.out.println();
+			System.out.println(currLoop.getR());
 		}
+		System.out.println(computeDelta());
 	}
 	
 	
@@ -115,13 +111,14 @@ public class Main {
 	static void declare() {
 		adjList = new ArrayList<>(1000);
 		edgePath = new ArrayList<>();
-		forwardPaths = new ArrayList<Path>(1000);
-		loops = new ArrayList<Path>(1000);
+		forwardPaths = new ArrayList<>(1000);
+		loops = new ArrayList<>(1000);
 		path = new ArrayList<>();
 		loop = new ArrayList<>();
 		visited = new boolean[100];
 		nodes = new HashMap<>();
 		nodeName = new HashMap<>();
+		marker = new boolean[100];
 		for (int i = 0; i < 1000; i++) {
 			adjList.add(new main.List<>());
 		}
@@ -130,25 +127,24 @@ public class Main {
 	
 	static void loops_dfs(int node, int parent, double cost, int src) {
 		if (parent != -1) {
-			String t1 = graph.getNode(parent).toString();
-			String t2 = graph.getNode(node).toString();
-			edgePath.add(new main.Edge(graph.getNode(parent).toString(), graph.getNode(node).toString(), cost));
+			edgePath.add(new main.Edge(graph.getNode(parent).toString(),
+					graph.getNode(node).toString(), cost));
 		}
 		loop.add(graph.getNode(node).toString());
 		if (visited[node]) {
 			// loop.add(graph.getNode(node).toString());
 			if (node == src) {
-				loops.add(new Path(loop));
+				loops.add(new Pair<Path, Double>(new Path(loop), cost));
 			}
 			loop.remove(loop.size() - 1);
 			return;
 		}
 		visited[node] = true;
 		int adjNodeIndex = 0;
-		for (Edge adjacentEdge : graph.getNode(node).getEachLeavingEdge()) {
-			int adjacentIndex = adjacentEdge.getTargetNode().getIndex();
-			loops_dfs(adjacentIndex, adjacentEdge.getSourceNode().getIndex(),
-					(double)adjList.get(node).get(adjNodeIndex).getL(), src);	
+		for (int i = 0; i < adjList.get(node).size(); i++) {
+			int child = (int) adjList.get(node).get(i).getR();
+			loops_dfs(child, node, cost*(double)adjList.get(node)
+					.get(adjNodeIndex).getL(), src);	
 			adjNodeIndex++;
 		}
 		visited[node] = false;
@@ -159,15 +155,15 @@ public class Main {
 		Map<Integer, Boolean> invalidLoopsIndices = new HashMap<>();
 		for (int i = 0; i < loops.size(); i++) {
 			reference = new ArrayList<>();
-			for (int j = 0; j < loops.get(i).size() - 1; j++) {
-				reference.add(loops.get(i).getPath().get(j));
+			for (int j = 0; j < loops.get(i).getL().size() - 1; j++) {
+				reference.add(loops.get(i).getL().getPath().get(j));
 			}
 			List<String> compared;
 			for (int j = i + 1; j < loops.size(); j++) {
 				compared = new ArrayList<>();
 				boolean identical = true;
-				for (int k = 0; k < loops.get(j).size() - 1; k++) {
-					compared.add(loops.get(j).getPath().get(k));
+				for (int k = 0; k < loops.get(j).getL().size() - 1; k++) {
+					compared.add(loops.get(j).getL().getPath().get(k));
 				}
 				
 				Collections.sort(reference);
@@ -187,36 +183,34 @@ public class Main {
 				}
 			}
 		}
-		List<Path> tmp = new ArrayList<>();
+		List<Pair<Path, Double>> tmp = new ArrayList<>();
 		for (int i = 0; i < loops.size(); i++) {
 			if (invalidLoopsIndices.get(i) == null) {
-				tmp.add(new Path(loops.get(i).getPath()));
+				tmp.add(new Pair(new Path(loops.get(i).getL().getPath()), loops.get(i).getR()));
 			}
 		}
 		loops = tmp;
 	}
 	
-	static void paths_dfs(int node, int parent, double cost, int destination) {
+	static void paths_dfs(int node, int parent, double cost, int dest) {
 		if (parent != -1) {
-			String t1 = graph.getNode(parent).toString();
-			String t2 = graph.getNode(node).toString();
 			edgePath.add(new main.Edge(graph.getNode(parent).toString(), graph.getNode(node).toString(), cost));
 		}
 		if (visited[node]) {
 			return;
 		}
-		if (node == destination) {
-			path.add(nodeName.get(destination));
-			forwardPaths.add(new Path(path));
+		if (node == dest) {
+			path.add(nodeName.get(dest));
+			forwardPaths.add(new Pair<Path, Double>(new Path(path), cost));
 			path.remove(path.size() - 1);
 		}
 		visited[node] = true;
 		path.add(graph.getNode(node).toString());
 		int adjNodeIndex = 0;
-		for (Edge adjacentEdge : graph.getNode(node).getEachLeavingEdge()) {
-			int adjacentIndex = adjacentEdge.getTargetNode().getIndex();
-			paths_dfs(adjacentIndex, adjacentEdge.getSourceNode().getIndex(),
-					(double)adjList.get(node).get(adjNodeIndex).getL(), destination);	
+		for (int i = 0; i < adjList.get(node).size(); i++) {
+			int child = (int) adjList.get(node).get(i).getR();
+			paths_dfs(child, node, cost*(double)adjList.get(node)
+					.get(adjNodeIndex).getL(), dest);	
 			adjNodeIndex++;
 		}
 		visited[node] = false;
@@ -224,7 +218,69 @@ public class Main {
 	} 
 	static double computeDelta() {
 		double delta = 1.0;
-		//for ()
-		return 1.0;
+		int sign = -1;
+		for (Pair<Path, Double> indivLoops : loops) {
+			delta += sign*indivLoops.getR();
+		}
+		changed = true;
+		for (int sz = 2; sz < 100 && changed; sz++) {
+			changed = false;
+			for (int i = 0; i < 100; i++) {
+				marker[i] = false;
+			}
+			getNonTouchingLoopsCombGain(0, 0, sz);
+		}
+		return delta;
+	}
+	private static void getNonTouchingLoopsCombGain(int index, int taken, int sz) {
+		if (taken == sz) {
+			if (checkForValidCombination()) {
+				double temp = 1.0;
+				for (int i = 0; i < loops.size(); i++) {
+					if (marker[i]) {
+						changed = true;
+						temp *= loops.get(i).getR();
+					}
+				}
+				if (sz % 2 == 0) {
+					delta += temp;
+				} else {
+					delta -= temp;
+				}
+			}
+			return;
+		}
+		if (index >= loops.size()) return;
+		marker[index] = true;
+		getNonTouchingLoopsCombGain(index + 1, taken + 1, sz);
+		marker[index] = false;
+		getNonTouchingLoopsCombGain(index + 1, taken, sz);
+	}
+	
+	private static boolean checkForValidCombination() {
+		for (int i = 0; i < loops.size(); i++) {
+			if (marker[i]) {
+				List<String> reference = new ArrayList<>();
+				for (String node : loops.get(i).getL().getPath()) {
+					reference.add(node);
+				}
+				for (int j = i + 1; j < loops.size(); j++) {
+					List<String> compared = new ArrayList<>();
+					if (marker[j]) {
+						for (String node : loops.get(j).getL().getPath()) {
+							compared.add(node);
+						}
+					}
+					for (int k = 0; k < reference.size(); k++) {
+						for (int l = k + 1; l < compared.size(); l++) {
+							if (reference.get(k).equals(compared.get(l))) {
+								return false;
+							}
+						}
+					}
+				}
+			}
+		}
+		return true;
 	}
 }
