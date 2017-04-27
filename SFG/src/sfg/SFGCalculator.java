@@ -5,6 +5,15 @@ import java.util.List;
 
 public class SFGCalculator {
 	private double delta = 1.0;
+	public double getDelta() {
+		return delta;
+	}
+
+
+	public double[] getDeltas() {
+		return deltas;
+	}
+
 	private List<Pair<Path, Double>> loops;
 	private List<Pair<Path, Double>> forwardPaths;
 	private double[] deltas;

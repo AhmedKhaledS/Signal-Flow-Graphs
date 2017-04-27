@@ -18,52 +18,30 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
+import sfg.GraphAttributes;
+import sfg.GraphTraversal;
+import sfg.SFGCalculator;
 
-public class Main extends Application{
+public class Main extends Application {
 
-	private static int destination;
-	private static ArrayList<String> path;
-	private static ArrayList<String> loops;
-	private static boolean[] visited;
 	private static SingleGraph graph;
+	private GraphTraversal graphTr;
+	private int noOfNodes = 0;
+	private int noOfEdges = 0;
 	
 	public static void main(String[] args) {
-		System.setProperty("org.graphstream.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
+		//System.setProperty("org.graphstream.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
 		graph = new SingleGraph("Graph");
-		for (int i = 0; i < 5; i++) {
-			Element cur = graph.addNode("Node" + i);
-			cur.addAttribute("ui.label", "Node" + i);
-		}
-		try {
-			for (int i = 0; i < 4; i++) {
-				Element cur = graph.addEdge("Node" + i + (i + 1), i, i + 1, true);
-				cur.addAttribute("ui.label", cur.getId());
-			}
-			graph.addEdge("Node30", 4, 2, true);
-			//graph.addEdge("Node10", 1, 0, true);
-			graph.addEdge("Node31", 0, 0, true);
-		} catch (EdgeRejectedException e) {
-			e.printStackTrace();
-		}
-		path = new ArrayList<>();
-		loops = new ArrayList<>();
-		visited = new boolean[10];
-		destination = 4;
-		dfs(0);
-		System.out.println(" --- ");
-		for (int i = 0; i < 5; i++) {
-			System.out.println("From Node " + i);
-			loops.clear();
-			visited = new boolean[10];
-			destination = i;
-			dfs(0);
-		}
+		GraphAttributes.initialize();
 		//graph.addAttribute("ui.stylesheet", "graph { fill-color: blue; }");
 		//graph.display();
 		launch(args);
@@ -79,44 +57,6 @@ public class Main extends Application{
         primaryStage.show();
     }
 	
-	static void dfs(int node) {
-		if (node == destination) {
-			printPath();
-		}
-		if (visited[node]) {
-			loops.add(graph.getNode(node).toString());
-			printLoop();
-			loops.remove(loops.size() - 1);
-			return;
-		}
-		visited[node] = true;
-		path.add(graph.getNode(node).toString());
-		loops.add(graph.getNode(node).toString());
-		for (Edge adjacentEdge : graph.getNode(node).getEachLeavingEdge()) {
-			int adjacentIndex = adjacentEdge.getTargetNode().getIndex();
-			dfs(adjacentIndex);	
-		}
-		path.remove(path.size() - 1);
-		loops.remove(loops.size() - 1);
-		
-	}
-	
-	static void printPath() {	
-//		System.out.print("Path ");
-//		for (String node : path) {
-//			System.out.print(node + " ");
-//		}
-//		System.out.println();
-	}
-
-	static void printLoop() {
-//		System.out.print("Loop ");
-//		for (String node : loops) {
-//			System.out.print(node + " ");
-//		}
-//		System.out.println();
-	}
-	
 	public void prepareButtons(StackPane root) {
    	 VBox interfaceBox = new VBox(10);
    	 interfaceBox.setPrefWidth(90);
@@ -128,16 +68,66 @@ public class Main extends Application{
    }
 
 	private void addSolveButton(VBox interfaceBox) {
+		HBox solveBox = new HBox(10);
 		Button solve = new Button();
+		Label sourceLabel = new Label("Source node");
+		Label targetLabel = new Label("Target node");
+		TextField sourceNode = new TextField();
+		TextField targetNode = new TextField();
+		TextFlow txtFlow = new TextFlow();
 	    solve.setText("Solve");
 	    solve.setOnAction(new EventHandler<ActionEvent>() {
 
 			@Override
 			public void handle(ActionEvent arg0) {
-				//TODO :  Call Solver
+				GraphTraversal graphTr = new GraphTraversal(graph);
+				for (int i = 0; i < noOfNodes; i++) {
+					graphTr.loops_dfs(i, -1, 1, i, 1);
+					graphTr.clear();
+				}
+				graphTr.removeDuplicates();
+				graphTr.paths_dfs(Integer.parseInt(sourceNode.getText()), -1, 1, Integer.parseInt(targetNode.getText()));
+				graph.display();
+				SFGCalculator calculator = new SFGCalculator(graphTr);
+				calculator.computeDeltas();
+				double transferFunction = calculator.computeTransferFunction();
+				prettyPrinting(graphTr, txtFlow, transferFunction, calculator);
 			}
 	    });
-	    interfaceBox.getChildren().add(solve);
+	    solveBox.getChildren().addAll(solve, sourceLabel, sourceNode, targetLabel, targetNode);
+	    interfaceBox.getChildren().add(solveBox);
+	    interfaceBox.getChildren().add(txtFlow);
+	}
+	
+	private void prettyPrinting(GraphTraversal graph, TextFlow txtFlow, double transFunction, SFGCalculator calculator) {
+		Text forwardPaths = new Text("Forwad Paths\n");
+		txtFlow.getChildren().add(forwardPaths);
+		double[] deltas = calculator.getDeltas();
+		for (int i = 0; i < graph.getForwardPaths().size(); i++) {
+			Text curForwardPath;
+			String forwardPath = "";
+			for (String node : graph.getForwardPaths().get(i).getL().getPath()) {
+				forwardPath += node + " ";
+			}
+			forwardPath += "\t\t Gain:" + graph.getForwardPaths().get(i).getR().toString() + "\t Delta:" + deltas[i];
+			curForwardPath = new Text(forwardPath + "\n");
+			txtFlow.getChildren().add(curForwardPath);
+		}
+		Text loops = new Text("Loops\n");
+		txtFlow.getChildren().add(loops);
+		for (int i = 0; i < graph.getLoops().size(); i++) {
+			Text curLoop;
+			String loop = "";
+			for (String node : graph.getLoops().get(i).getL().getPath()) {
+				loop += node + " ";
+			}
+			loop += "\t\t Gain:" + graph.getForwardPaths().get(i).getR().toString();
+			curLoop = new Text(loop + "\n");
+			txtFlow.getChildren().add(curLoop);
+		}
+		Text delta = new Text("Delta: " + calculator.getDelta() + "\n");
+		Text tFunction = new Text("Transfer function: " + transFunction);
+		txtFlow.getChildren().addAll(delta, tFunction);
 	}
 	
 	private void initCanvas(VBox interfaceBox) {
@@ -174,7 +164,9 @@ public class Main extends Application{
 			public void handle(ActionEvent arg0) {
 				String nodeNameString = nodeName.getText();
 				// call addNode Method
-				graph.addNode(nodeNameString);
+				Element node = graph.addNode(nodeNameString);
+				node.addAttribute("ui.label", "Node "+ node.getId());
+				GraphAttributes.addNode(nodeNameString, noOfNodes++);
 			}
 	    });
 	    addNodeBox.getChildren().addAll(addNode, nodeName);
@@ -200,7 +192,10 @@ public class Main extends Application{
 				String targetNodeName = edgeDestination.getText();
 				String edgeWeightString = edgeWeight.getText();
 				// call addEdge Method
-				Platform.runLater(() -> graph.addEdge(edgeWeightString, sourceNodeName, targetNodeName));;
+				Edge currEdge = graph.addEdge(sourceNodeName + "-->" + targetNodeName, sourceNodeName, targetNodeName, true);
+				currEdge.addAttribute("ui.label", edgeWeightString);
+				GraphAttributes.addChild(Integer.parseInt(sourceNodeName), Integer.parseInt(targetNodeName), Double.parseDouble(edgeWeightString));
+				noOfEdges++;
 			}
 
 		});
